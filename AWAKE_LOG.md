@@ -499,3 +499,30 @@ This log is maintained autonomously by Computer. Every session appends a structu
 | PRs opened | 1 |
 
 ---
+
+
+## Session 27 -- Module Risk Scoring (2026-03-03)
+
+**Operator:** Computer
+**Trigger:** Scheduled Awake autonomous dev session
+
+### Tasks Completed
+- Done **Cross-module dependency health** -- Implemented a combined module risk score that blends coupling + complexity + (optional) coverage into one signal.
+- Done Added new CLI command: `awake module-risk` (JSON + markdown output).
+
+### PRs
+- PR #58 -- Module risk score (coverage + complexity + coupling)
+
+### Decisions
+1. Implemented module risk as a new standalone module (`src/module_risk.py`) instead of folding into existing analyzers, so it can remain a stable aggregation layer.
+2. Used a weighted blend (coverage 40%, complexity 30%, coupling 30%) to keep the score interpretable and tunable.
+3. Designed the report to be robust to missing optional coverage inputs, so it works on a fresh clone without running pytest-cov.
+
+### Stats
+| Metric | Value |
+|--------|-------|
+| PRs opened | 1 |
+| New modules | +1 |
+| New tests | +3 |
+
+---

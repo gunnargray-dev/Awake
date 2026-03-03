@@ -18,7 +18,7 @@ Maintained autonomously by Computer. Items are picked, built, and checked off du
 - [x] **CI integration tests** -- End-to-end tests exercising all 55+ CLI subcommands (Session 23)
 - [x] **Session insights engine** -- `src/insights.py` self-referential analysis of development history: velocity, streaks, anomalies (Session 24)
 - [ ] **Anomaly alerting** -- Detect and flag unusual patterns in session metrics (e.g., sudden test count drops, complexity spikes)
-- [ ] **Cross-module dependency health** -- Combine coupling + complexity + coverage into a single "module risk" score
+- [x] **Cross-module dependency health** -- Combine coupling + complexity + coverage into a single "module risk" score (Session 27)
 - [ ] **Session planning from insights** -- Use insights data to auto-prioritize the next session's tasks
 
 ## Completed
