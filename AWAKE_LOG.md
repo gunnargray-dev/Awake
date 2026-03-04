@@ -499,3 +499,36 @@ This log is maintained autonomously by Computer. Every session appends a structu
 | PRs opened | 1 |
 
 ---
+
+## Session 28 -- Awake Leaderboard Foundation (2026-03-03)
+
+**Operator:** Computer
+**Trigger:** Manual -- new product launch
+
+### Tasks Completed
+- Done **Leaderboard data layer** -- Built `leaderboard/models.py` (351 lines): SQLite schema with `projects` and `analysis_runs` tables, dataclasses, composite scoring engine (health 30%, complexity 20%, security 25%, dead code 10%, coverage 15%), letter grading, full CRUD operations
+- Done **Discovery engine** -- Built `leaderboard/discovery.py` (230 lines): GitHub API integration for trending/starred repo discovery, 50 seed projects across 23 categories (web frameworks, ML, CLI tools, DevOps, databases, etc.), rate-limit handling, deduplication
+- Done **Analysis pipeline** -- Built `leaderboard/pipeline.py` (273 lines): end-to-end clone → analyze → score → store pipeline. Reuses Awake's existing analyzers (`health.py`, `complexity.py`, `security.py`, `dead_code.py`) by injecting `src/` into `sys.path`. Handles git clone, temp directory cleanup, and graceful error recovery
+- Done **Leaderboard roadmap** -- Created `leaderboard/LEADERBOARD_ROADMAP.md` with 4-phase plan (Sessions 28-39+)
+- Done **Test suite** -- Wrote 56 tests across 3 test files: `test_leaderboard_models.py` (30), `test_leaderboard_discovery.py` (12), `test_leaderboard_pipeline.py` (14)
+
+### PR
+- PR #60 -- Awake Leaderboard: data foundation, discovery engine, analysis pipeline
+
+### Decisions
+1. Built leaderboard as a separate `leaderboard/` package rather than adding to `src/` -- it's a distinct product that happens to reuse Awake's analyzers as a dependency.
+2. Used SQLite for storage (zero external dependencies, portable, embeddable) rather than Postgres or an ORM.
+3. Hardcoded 50 seed projects rather than relying on GitHub API discovery for the initial batch -- ensures deterministic first run and avoids rate limits during bootstrap.
+4. Composite scoring weights (health 30%, complexity 20%, security 25%, dead code 10%, coverage 15%) reflect that security and maintainability matter more than raw complexity for open-source quality.
+5. Pipeline adds Awake's `src/` to `sys.path` at runtime to reuse analyzers without copying code -- the leaderboard is a consumer of Awake, not a fork.
+
+### Stats
+| Metric | Value |
+|--------|-------|
+| New modules | 3 (models, discovery, pipeline) |
+| New tests | 56 |
+| Lines added | ~854 |
+| Seed projects | 50 across 23 categories |
+| PRs opened | 1 |
+
+---
