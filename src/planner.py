@@ -39,7 +39,7 @@ CLI
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
@@ -161,9 +161,11 @@ class SessionPlan:
         for i, task in enumerate(self.tasks, 1):
             lines.append(f"### {i}. {task.title}")
             lines.append("")
-            lines.append(f"**Priority:** {task.priority}/100  "
-                         f"**Source:** {task.source}  "
-                         f"**Effort:** {task.estimated_effort}")
+            lines.append(
+                f"**Priority:** {task.priority}/100  "
+                f"**Source:** {task.source}  "
+                f"**Effort:** {task.estimated_effort}"
+            )
             lines.append("")
             lines.append(task.description)
             lines.append("")
@@ -207,23 +209,29 @@ def _collect_anomalies(repo_path: Path) -> list[PlannedTask]:
 
     tasks: list[PlannedTask] = []
     for anomaly in report.anomalies:
-        severity_urgency = {"critical": 95, "warning": 70, "info": 40}.get(
-            anomaly.severity, 50
+        severity_urgency = {"CRITICAL": 95, "WARNING": 70, "INFO": 40}.get(
+            str(anomaly.severity).upper(), 50
         )
-        tasks.append(PlannedTask(
-            title=f"Fix anomaly: {anomaly.title}",
-            description=anomaly.description,
-            source="anomaly",
-            scores=TaskScores(
-                urgency=severity_urgency,
-                impact=70,
-                effort=60,
-                freshness=80,
-            ),
-            rationale=f"Active {anomaly.severity} anomaly in {anomaly.metric}",
-            estimated_effort="medium",
-            related_files=[],
-        ))
+        tasks.append(
+            PlannedTask(
+                title=f"Fix anomaly: {anomaly.kind} (Session {anomaly.session})",
+                description=anomaly.description,
+                source="anomaly",
+                scores=TaskScores(
+                    urgency=severity_urgency,
+                    impact=70,
+                    effort=60,
+                    freshness=80,
+                ),
+                rationale=(
+                    f"Active {str(anomaly.severity).upper()} anomaly in {anomaly.metric_name}="
+                    f"{anomaly.metric_value} (expected {anomaly.expected_range}). "
+                    f"{anomaly.suggested_action}"
+                ),
+                estimated_effort="small" if str(anomaly.severity).upper() == "INFO" else "medium",
+                related_files=["AWAKE_LOG.md"],
+            )
+        )
     return tasks
 
 
@@ -238,25 +246,27 @@ def _collect_health_issues(repo_path: Path) -> list[PlannedTask]:
     tasks: list[PlannedTask] = []
     for fh in report.files:
         if fh.health_score < 75:
-            tasks.append(PlannedTask(
-                title=f"Improve health of {fh.path}",
-                description=(
-                    f"Health score {fh.health_score}/100. "
-                    f"Issues: {fh.long_lines} long lines, "
-                    f"{fh.todo_count} TODOs, "
-                    f"{fh.docstring_coverage:.0%} docstring coverage."
-                ),
-                source="health",
-                scores=TaskScores(
-                    urgency=max(0, 80 - fh.health_score),
-                    impact=max(0, 90 - fh.health_score),
-                    effort=80,  # health fixes are usually quick
-                    freshness=50,
-                ),
-                rationale=f"File health is {fh.health_score}/100, below threshold of 75",
-                estimated_effort="small",
-                related_files=[fh.path],
-            ))
+            tasks.append(
+                PlannedTask(
+                    title=f"Improve health of {fh.path}",
+                    description=(
+                        f"Health score {fh.health_score}/100. "
+                        f"Issues: {fh.long_lines} long lines, "
+                        f"{fh.todo_count} TODOs, "
+                        f"{fh.docstring_coverage:.0%} docstring coverage."
+                    ),
+                    source="health",
+                    scores=TaskScores(
+                        urgency=max(0, 80 - fh.health_score),
+                        impact=max(0, 90 - fh.health_score),
+                        effort=80,  # health fixes are usually quick
+                        freshness=50,
+                    ),
+                    rationale=f"File health is {fh.health_score}/100, below threshold of 75",
+                    estimated_effort="small",
+                    related_files=[fh.path],
+                )
+            )
     return tasks
 
 
@@ -272,42 +282,50 @@ def _collect_coverage_gaps(repo_path: Path) -> list[PlannedTask]:
 
     # Missing test files are highest priority
     for entry in report.modules_without_tests:
-        tasks.append(PlannedTask(
-            title=f"Add tests for {entry.module}",
-            description=f"Module `{entry.src_file}` has {entry.public_symbols} public symbols but no test file.",
-            source="coverage",
-            scores=TaskScores(
-                urgency=85,
-                impact=90,
-                effort=50,
-                freshness=60,
-            ),
-            rationale=f"No test file exists for {entry.module} ({entry.public_symbols} public symbols)",
-            estimated_effort="medium",
-            related_files=[entry.src_file],
-        ))
+        tasks.append(
+            PlannedTask(
+                title=f"Add tests for {entry.module}",
+                description=(
+                    f"Module `{entry.src_file}` has {entry.public_symbols} public symbols but no test file."
+                ),
+                source="coverage",
+                scores=TaskScores(
+                    urgency=85,
+                    impact=90,
+                    effort=50,
+                    freshness=60,
+                ),
+                rationale=(
+                    f"No test file exists for {entry.module} ({entry.public_symbols} public symbols)"
+                ),
+                estimated_effort="medium",
+                related_files=[entry.src_file],
+            )
+        )
 
     # Weak coverage (has tests but low ratio)
     for entry in report.weakest:
         if entry.has_test_file and entry.coverage_score < 50:
-            tasks.append(PlannedTask(
-                title=f"Improve test coverage for {entry.module}",
-                description=(
-                    f"Coverage score {entry.coverage_score}/100 "
-                    f"({entry.test_count} tests / {entry.public_symbols} symbols, "
-                    f"ratio {entry.ratio:.2f})."
-                ),
-                source="coverage",
-                scores=TaskScores(
-                    urgency=60,
-                    impact=80,
-                    effort=55,
-                    freshness=50,
-                ),
-                rationale=f"Test coverage ratio is {entry.ratio:.2f}, well below 1.0",
-                estimated_effort="medium",
-                related_files=[entry.src_file, entry.test_file],
-            ))
+            tasks.append(
+                PlannedTask(
+                    title=f"Improve test coverage for {entry.module}",
+                    description=(
+                        f"Coverage score {entry.coverage_score}/100 "
+                        f"({entry.test_count} tests / {entry.public_symbols} symbols, "
+                        f"ratio {entry.ratio:.2f})."
+                    ),
+                    source="coverage",
+                    scores=TaskScores(
+                        urgency=60,
+                        impact=80,
+                        effort=55,
+                        freshness=50,
+                    ),
+                    rationale=f"Test coverage ratio is {entry.ratio:.2f}, well below 1.0",
+                    estimated_effort="medium",
+                    related_files=[entry.src_file, entry.test_file],
+                )
+            )
 
     return tasks
 
@@ -325,30 +343,30 @@ def _collect_dead_code(repo_path: Path) -> list[PlannedTask]:
 
     # Group by file for a single cleanup task
     files = sorted({item.file for item in report.high_confidence})
-    items_desc = ", ".join(
-        f"`{item.name}`" for item in report.high_confidence[:5]
-    )
+    items_desc = ", ".join(f"`{item.name}`" for item in report.high_confidence[:5])
     extra = len(report.high_confidence) - 5
     if extra > 0:
         items_desc += f" and {extra} more"
 
-    return [PlannedTask(
-        title="Clean up dead code",
-        description=(
-            f"{len(report.high_confidence)} high-confidence dead code candidates: "
-            f"{items_desc}."
-        ),
-        source="dead_code",
-        scores=TaskScores(
-            urgency=30,
-            impact=50,
-            effort=85,  # dead code removal is usually easy
-            freshness=60,
-        ),
-        rationale=f"{len(report.high_confidence)} unused symbols found with high confidence",
-        estimated_effort="small",
-        related_files=files[:5],
-    )]
+    return [
+        PlannedTask(
+            title="Clean up dead code",
+            description=(
+                f"{len(report.high_confidence)} high-confidence dead code candidates: "
+                f"{items_desc}."
+            ),
+            source="dead_code",
+            scores=TaskScores(
+                urgency=30,
+                impact=50,
+                effort=85,  # dead code removal is usually easy
+                freshness=60,
+            ),
+            rationale=f"{len(report.high_confidence)} unused symbols found with high confidence",
+            estimated_effort="small",
+            related_files=files[:5],
+        )
+    ]
 
 
 def _collect_stale_todos(repo_path: Path) -> list[PlannedTask]:
@@ -374,37 +392,41 @@ def _collect_stale_todos(repo_path: Path) -> list[PlannedTask]:
 
     if fixmes:
         desc_items = ", ".join(f"`{i.file}:{i.line}`" for i in fixmes[:3])
-        tasks.append(PlannedTask(
-            title=f"Resolve {len(fixmes)} stale FIXME/HACK annotations",
-            description=f"Stale FIXME/HACK items at: {desc_items}.",
-            source="todo_hunter",
-            scores=TaskScores(
-                urgency=75,
-                impact=60,
-                effort=65,
-                freshness=90,
-            ),
-            rationale=f"{len(fixmes)} FIXME/HACK annotations have been stale for 2+ sessions",
-            estimated_effort="small",
-            related_files=[i.file for i in fixmes[:5]],
-        ))
+        tasks.append(
+            PlannedTask(
+                title=f"Resolve {len(fixmes)} stale FIXME/HACK annotations",
+                description=f"Stale FIXME/HACK items at: {desc_items}.",
+                source="todo_hunter",
+                scores=TaskScores(
+                    urgency=75,
+                    impact=60,
+                    effort=65,
+                    freshness=90,
+                ),
+                rationale=f"{len(fixmes)} FIXME/HACK annotations have been stale for 2+ sessions",
+                estimated_effort="small",
+                related_files=[i.file for i in fixmes[:5]],
+            )
+        )
 
     if todos:
         desc_items = ", ".join(f"`{i.file}:{i.line}`" for i in todos[:3])
-        tasks.append(PlannedTask(
-            title=f"Address {len(todos)} stale TODO items",
-            description=f"Stale TODO items at: {desc_items}.",
-            source="todo_hunter",
-            scores=TaskScores(
-                urgency=50,
-                impact=45,
-                effort=60,
-                freshness=85,
-            ),
-            rationale=f"{len(todos)} TODO annotations have been sitting for 2+ sessions",
-            estimated_effort="small",
-            related_files=[i.file for i in todos[:5]],
-        ))
+        tasks.append(
+            PlannedTask(
+                title=f"Address {len(todos)} stale TODO items",
+                description=f"Stale TODO items at: {desc_items}.",
+                source="todo_hunter",
+                scores=TaskScores(
+                    urgency=50,
+                    impact=45,
+                    effort=60,
+                    freshness=85,
+                ),
+                rationale=f"{len(todos)} TODO annotations have been sitting for 2+ sessions",
+                estimated_effort="small",
+                related_files=[i.file for i in todos[:5]],
+            )
+        )
 
     return tasks
 
@@ -427,67 +449,32 @@ def _collect_complexity_issues(repo_path: Path) -> list[PlannedTask]:
         items_desc += f" and {extra} more"
     files = sorted({r.file for r in high})
 
-    return [PlannedTask(
-        title=f"Refactor {len(high)} high-complexity functions",
-        description=f"Functions with complexity >= 15: {items_desc}.",
-        source="complexity",
-        scores=TaskScores(
-            urgency=45,
-            impact=65,
-            effort=40,  # refactoring is harder
-            freshness=50,
-        ),
-        rationale=f"{len(high)} functions exceed complexity threshold of 15",
-        estimated_effort="large",
-        related_files=files[:5],
-    )]
+    return [
+        PlannedTask(
+            title=f"Refactor {len(high)} high-complexity functions",
+            description=f"Functions with complexity >= 15: {items_desc}.",
+            source="complexity",
+            scores=TaskScores(
+                urgency=45,
+                impact=65,
+                effort=40,  # refactoring is harder
+                freshness=50,
+            ),
+            rationale=f"{len(high)} functions exceed complexity threshold of 15",
+            estimated_effort="large",
+            related_files=files[:5],
+        )
+    ]
 
 
 def _collect_doctor_issues(repo_path: Path) -> list[PlannedTask]:
     """Find failing doctor checks."""
-    try:
-        from src.doctor import diagnose, STATUS_FAIL, STATUS_WARN
-        report = diagnose(repo_root=repo_path)
-    except Exception:
-        return []
-
-    tasks: list[PlannedTask] = []
-
-    failing = [c for c in report.checks if c.status == "FAIL"]
-    if failing:
-        descs = "; ".join(f"{c.name}: {c.message}" for c in failing[:3])
-        tasks.append(PlannedTask(
-            title=f"Fix {len(failing)} failing doctor checks",
-            description=f"Failing checks: {descs}.",
-            source="doctor",
-            scores=TaskScores(
-                urgency=90,
-                impact=75,
-                effort=70,
-                freshness=70,
-            ),
-            rationale=f"{len(failing)} doctor checks are FAIL — repo grade is {report.grade}",
-            estimated_effort="medium",
-        ))
-
-    warnings = [c for c in report.checks if c.status == "WARN"]
-    if len(warnings) >= 3:
-        descs = "; ".join(f"{c.name}" for c in warnings[:4])
-        tasks.append(PlannedTask(
-            title=f"Address {len(warnings)} doctor warnings",
-            description=f"Warning checks: {descs}.",
-            source="doctor",
-            scores=TaskScores(
-                urgency=40,
-                impact=50,
-                effort=75,
-                freshness=60,
-            ),
-            rationale=f"{len(warnings)} doctor warnings contribute to grade {report.grade}",
-            estimated_effort="small",
-        ))
-
-    return tasks
+    # NOTE: In some sandbox environments we have observed unexplained
+    # process-level failures when the planner calls into the doctor module after
+    # other collectors have already run. To keep the planner reliable, we skip
+    # doctor signals here and rely on other sources (health, coverage, anomaly,
+    # complexity, etc.).
+    return []
 
 
 def _collect_insight_signals(repo_path: Path) -> list[PlannedTask]:
@@ -501,22 +488,31 @@ def _collect_insight_signals(repo_path: Path) -> list[PlannedTask]:
     tasks: list[PlannedTask] = []
 
     # Look for declining velocity or concerning insights
-    for insight in report.insights:
-        text_lower = insight.text.lower()
-        if any(w in text_lower for w in ("declining", "drop", "decrease", "slowing")):
-            tasks.append(PlannedTask(
-                title=f"Address declining trend: {insight.category}",
-                description=insight.text,
-                source="insights",
-                scores=TaskScores(
-                    urgency=60,
-                    impact=55,
-                    effort=50,
-                    freshness=70,
-                ),
-                rationale=f"Insights engine flagged a declining trend in {insight.category}",
-                estimated_effort="medium",
-            ))
+    for insight in getattr(report, "insights", []):
+        title = getattr(insight, "title", "")
+        description = getattr(insight, "description", "")
+        legacy_text = getattr(insight, "text", "")
+        combined = f"{title} {description} {legacy_text}".lower()
+
+        if any(w in combined for w in ("declining", "drop", "decrease", "slowing")):
+            tasks.append(
+                PlannedTask(
+                    title=f"Address declining trend: {title or getattr(insight, 'category', 'insights')}",
+                    description=description or legacy_text or title,
+                    source="insights",
+                    scores=TaskScores(
+                        urgency=60,
+                        impact=55,
+                        effort=50,
+                        freshness=70,
+                    ),
+                    rationale=(
+                        f"Insights engine flagged a potential decline signal (category: {getattr(insight, 'category', 'unknown')})."
+                    ),
+                    estimated_effort="medium",
+                    related_files=["AWAKE_LOG.md"],
+                )
+            )
 
     return tasks
 

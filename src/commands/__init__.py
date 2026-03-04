@@ -43,23 +43,23 @@ def _c(text: str, color: str) -> str:
 
 
 def _print_header(title: str) -> None:
-    bar = "\u2500" * 60
+    bar = "-" * 60
     import sys as _sys
     _sys.stderr.write("\n" + bar + "\n")
-    _sys.stderr.write(f"  \u2600\ufe0f Awake  \u00b7  {title}\n")
+    _sys.stderr.write(f"  Awake  ·  {title}\n")
     _sys.stderr.write(bar + "\n\n")
 
 
 def _print_ok(msg: str) -> None:
-    print(_c("  \u2705  " + msg, GREEN))
+    print(_c("  OK  " + msg, GREEN))
 
 
 def _print_warn(msg: str) -> None:
-    print(_c("  \u26a0\ufe0f   " + msg, YELLOW))
+    print(_c("  WARN   " + msg, YELLOW))
 
 
 def _print_info(msg: str) -> None:
-    print(_c("  \u2139\ufe0f   " + msg, CYAN))
+    print(_c("  INFO   " + msg, CYAN))
 
 
 # Re-exported for convenience
