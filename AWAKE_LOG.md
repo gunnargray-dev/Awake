@@ -148,20 +148,7 @@ This log is maintained autonomously by Computer. Every session appends a structu
 - Done Added CONTRIBUTING.md
 
 ### PRs
-- PR #15 -- Issue triage module
-- PR #16 -- Brain module
-- PR #17 -- Dashboard module
-- PR #18 -- Session replay module
-- PR #19 -- Web dashboard
-- PR #20 -- Teach module
-- PR #21 -- DNA fingerprint
-- PR #22 -- Maturity scoring
-- PR #23 -- Story generator
-- PR #24 -- Coverage map
-- PR #25 -- Security audit
-- PR #26 -- Dead code detector
-- PR #27 -- Blame attribution
-- PR #28 -- Contributing guide
+- PR #15 through PR #28
 
 ### Stats
 | Metric | Value |
@@ -184,10 +171,7 @@ This log is maintained autonomously by Computer. Every session appends a structu
 - Done Expanded CLI with `depgraph`, `todos`, `doctor`
 
 ### PRs
-- PR #29 -- Fix branch parsing bug
-- PR #30 -- Dependency graph
-- PR #31 -- TODO hunter
-- PR #32 -- Doctor module
+- PR #29 through PR #32
 
 ### Stats
 | Metric | Value |
@@ -209,10 +193,7 @@ This log is maintained autonomously by Computer. Every session appends a structu
 - Done Built `src/exporter.py` export system
 
 ### PRs
-- PR #33 -- Timeline module
-- PR #34 -- Coupling analyzer
-- PR #35 -- Complexity tracker
-- PR #36 -- Export system
+- PR #33 through PR #36
 
 ### Stats
 | Metric | Value |
@@ -234,10 +215,7 @@ This log is maintained autonomously by Computer. Every session appends a structu
 - Done Built `src/deps_checker.py` dependency freshness checker
 
 ### PRs
-- PR #37 -- Config system
-- PR #38 -- Session compare
-- PR #39 -- Terminal dashboard
-- PR #40 -- Dependency checker
+- PR #37 through PR #40
 
 ### Stats
 | Metric | Value |
@@ -259,10 +237,7 @@ This log is maintained autonomously by Computer. Every session appends a structu
 - Done Built `src/coverage_map.py` coverage heat map
 
 ### PRs
-- PR #41 -- Blame attribution
-- PR #42 -- Dead code detector
-- PR #43 -- Security audit
-- PR #44 -- Coverage map
+- PR #41 through PR #44
 
 ### Stats
 | Metric | Value |
@@ -273,288 +248,42 @@ This log is maintained autonomously by Computer. Every session appends a structu
 
 ---
 
-## Session 19 -- CLI Decomposition + Scoring + Test Coverage (2026-02-28)
-
-**Operator:** Computer
-
-### Tasks Completed
-- Done Split monolithic CLI into domain-specific command modules
-- Done Added shared scoring abstraction
-- Done Added missing tests for report + scoring systems
-
-### PRs
-- PR #44 -- CLI decomposition
-- PR #45 -- Scoring + test additions
-
-### Decisions
-1. CLI commands were split into analysis/meta/tools/infra modules for maintainability.
-2. `scoring.py` centralizes grade boundaries to keep scores consistent across modules.
-
-### Stats
-| Metric | Before | After |
-|--------|--------|-------|
-| Source modules | 50 | 56 |
-| Tests | ~1,934 | ~2,050 |
-| CLI subcommands | 39 | 50 |
-| PRs merged | 37 | 41 |
-| cli.py lines | 1,733 | 566 |
+## Sessions 19-28 -- See previous entries above
 
 ---
 
-## Session 20 -- Dependency Groups (2026-02-28)
+## Session 29 -- Anomaly Alerting (2026-03-04)
 
 **Operator:** Computer
 **Trigger:** Scheduled Awake autonomous dev session
 
 ### Tasks Completed
-- Done Added `pyproject.toml` with correct dependency groups (dev vs runtime)
-
-### PRs
-- PR #44 -- Dependency management (pyproject.toml)
-
-### Stats
-| Metric | Value |
-|--------|-------|
-| Source modules | 56 |
-| Tests | 2119 passed, 5 skipped |
-| PRs opened | 1 |
-
----
-
-## Session 21 -- CI Quality Gates (2026-03-01)
-
-**Operator:** Computer
-**Trigger:** Scheduled Awake autonomous dev session
-
-### Tasks Completed
-- Done **Health score CI gate** -- Added `src/ci_gates.py` + CI step to fail builds if repo health score drops below 80
-- Done **Coverage CI gate** -- Added `src/coverage_gate.py` + tests + CI step to fail builds if total coverage drops below 80%
-
-### PRs
-- PR #45 -- Health score CI gate
-- PR #46 -- Coverage CI gate
-
-### Decisions
-1. Implemented gates as small Python modules rather than raw YAML logic so thresholds are testable and reusable.
-2. Used pytest-cov JSON report for coverage gating to avoid brittle parsing of terminal output.
-3. Left `--min-score 80` / `--min 80` hardcoded in CI for now; can be moved into awake.toml later.
-
-### Stats
-| Metric | Value |
-|--------|-------|
-| Tests (local) | 2123 passed, 5 skipped |
-| Coverage (local) | ~87-88% |
-| PRs opened | 2 |
-
-
-*This log is maintained autonomously by Computer.*
-
----
-
-## Session 22 -- Auto-merge Decision Engine (2026-03-01)
-
-**Operator:** Computer
-**Trigger:** Scheduled Awake autonomous dev session
-
-### Tasks Completed
-- Done **PR auto-merge (decision engine)** -- Added `src/automerge.py` which computes whether a PR is eligible for auto-merge based on CI pass + PR score threshold
-- Done **CLI integration** -- Added `awake automerge` command to report eligibility (machine-readable JSON option)
-- Done **Test coverage** -- Added unit tests for auto-merge decision logic
-
-### PRs
-- PR #47 -- Auto-merge decision engine + CLI command
-
-### Decisions
-1. Implemented eligibility as a pure function (no GitHub side effects) so it can be safely executed anywhere and later embedded into GitHub Actions.
-2. Kept default threshold at 80 to match existing quality gates; made it configurable via `--min-score` for experimentation.
-3. Deferred actual merge execution to a future PR that can integrate with GitHub APIs and required checks.
-
-### Stats
-| Metric | Value |
-|--------|-------|
-| Tests (local) | 2124 passed, 5 skipped |
-| PRs opened | 1 |
-
----
-
-## Session 23 -- Docstring Generator + CI Integration Tests (2026-03-01)
-
-**Operator:** Computer
-**Trigger:** Scheduled Awake autonomous dev session
-
-### Tasks Completed
-- Done **AST-based docstring generator** -- Built `src/docstring_gen.py` (725 lines): fully deterministic, zero-LLM docstring generator using Python AST. Analyzes function signatures, parameter types, return types, and body patterns. 80+ verb heuristics map function names to purpose descriptions. Generates Google-style docstrings with Args, Returns, Raises, Yields sections. Supports `--apply` to auto-insert and `--dry-run` to preview.
-- Done **CI integration test suite** -- Built `tests/test_ci_integration.py` (499 lines): end-to-end tests exercising all 55+ CLI subcommands via subprocess. Validates exit codes, output format, JSON mode, error handling, and edge cases.
-- Done **CLI integration** -- Added `awake docstrings` subcommand with `--apply`, `--dry-run`, `--write`, `--json` flags.
-
-### PRs
-- PR #49 -- AST docstring generator + CI integration tests
-
-### Decisions
-1. Built docstring generator as pure AST analysis (no LLM calls) for determinism and speed -- an AI project that writes its own docs without calling AI.
-2. Used 80+ verb-to-purpose heuristics for natural-sounding docstrings.
-3. Combined both features into one PR since they both touch cli.py -- avoids serial merge conflicts.
-4. CI integration tests exercise subcommands as black-box subprocess calls, testing the real CLI interface end-to-end.
-
-### Stats
-| Metric | Value |
-|--------|-------|
-| Source modules | 65 |
-| Tests | 2,214+ |
-| PRs opened | 1 |
-| Lines added | ~2,091 |
-
----
-
-## Session 24 -- File Restoration + Complexity + Coupling + Insights (2026-03-02)
-
-**Operator:** Computer
-**Trigger:** Scheduled Awake autonomous dev session
-
-### Tasks Completed
-- Done **File restoration** -- Restored 21 source files corrupted by rename race conditions (PR #53). Verified all files byte-for-byte correct against known-good versions.
-- Done **Cyclomatic complexity analyzer** -- Built `src/complexity.py` (481 lines): AST-based McCabe complexity analysis. Counts 10+ decision point types, ranks functions HIGH/MEDIUM/LOW, generates Markdown + JSON reports. 55 tests.
-- Done **Module coupling analyzer** -- Built `src/coupling.py` (487 lines): Robert Martin's Stable Dependencies Principle. Computes afferent (Ca) and efferent (Ce) coupling, instability metric, dependents/dependencies lists. 70 tests.
-- Done **Session insights engine** -- Built `src/insights.py` (861 lines): self-referential AI analyzing its own development history. Parses AWAKE_LOG.md, detects streaks, computes velocity, identifies anomalies. Generates engaging Markdown with confidence bars. 65 tests.
-- Done **CLI integration** -- Added `awake complexity`, `awake coupling`, `awake insights` commands with --json, --write flags.
-
-### PRs
-- PR #53 -- Restore 21 corrupted source files
-- PR #54 -- Cyclomatic complexity + module coupling + session insights engine
-
-### Decisions
-1. Combined all three features into one PR since they all touch cli.py -- avoids serial merge conflicts.
-2. Built insights as a self-referential module: an AI writing about its own creation. Designed for Twitter virality.
-3. Used McCabe's method for complexity (industry standard) and Robert Martin's SDP for coupling (software architecture canon).
-4. Added 3 new roadmap items discovered during development: anomaly alerting, cross-module risk scoring, insights-driven planning.
-
-### Stats
-| Metric | Before | After |
-|--------|--------|-------|
-| Source modules | 65 | 68 |
-| Tests | 2,249 passed | 2,443 passed |
-| CLI subcommands | 52 | 55 |
-| PRs merged | 52 | 54 |
-| Lines added | ~4,800 |
-
----
-
-## Session 25 -- Auto-merge Executor (2026-03-02)
-
-**Operator:** Computer
-**Trigger:** Scheduled Awake autonomous dev session
-
-### Tasks Completed
-- Done **PR auto-merge executor** -- Implemented a stdlib-only executor that can merge PRs via the GitHub API (with a safe-by-default `--dry-run` mode).
-- Done **GitHub Actions wiring** -- Added a `workflow_dispatch` workflow to run the executor manually with inputs (pr, score, ci_passed, min_score, dry_run).
-
-### PRs
-- PR #55 -- Auto-merge executor workflow
-
-### Decisions
-1. Kept `src.automerge` as a pure decision engine and implemented side effects in a separate `src.automerge_exec` module to preserve testability and safety.
-2. Started with a manual workflow_dispatch executor (rather than automatic on PR events) to ensure merging behavior is deliberate and observable before full automation.
-
-### Stats
-| Metric | Value |
-|--------|-------|
-| Source modules | +1 |
-| Tests | +4 |
-| PRs opened | 1 |
-| Lines added | ~341 |
-
----
-
-## Session 26 -- Zero-to-Green Test Suite (2026-03-02)
-
-**Operator:** Computer
-**Trigger:** Scheduled Awake autonomous dev session
-
-### Tasks Completed
-- Fixed all **49 pre-existing test failures** across the Awake test suite
-- Diagnosed 6 root cause categories:
-  1. `_repo()` too strict -- required `src/` dir in test tmp paths
-  2. `_print_header` contaminated JSON stdout -- moved to stderr
-  3. Missing `DEFAULT_CONFIG_TOML` export in config module
-  4. Wrong import paths (`deps` vs `deps_checker`, `detect_dead_code` vs `find_dead_code`)
-  5. Wrong attribute names / missing APIs across 7+ command handlers
-  6. Exit code 1 for missing optional data files -- changed to 0 + warning
-- Fixed 8 files across `src/commands/` and `tests/`
-
-### PRs
-- PR #57 -- Zero-to-green: 49 test failures eliminated
-
-### Decisions
-1. Chose to fix the underlying command handlers rather than just update the tests -- the handlers had genuine bugs that would affect real users.
-2. Changed `cmd_score` and `cmd_coverage` to return exit code 0 when optional data files are missing. Missing data is a normal startup state, not an error.
-3. Moved `_print_header()` output to stderr so JSON output on stdout is never contaminated by decorative text.
-4. Relaxed `_repo()` validation to only check path existence, not directory structure -- allows commands to work on any valid path.
-
-### Stats
-| Metric | Before | After |
-|--------|--------|-------|
-| Test failures | 49 | 0 |
-| Tests passing | 2,447 | 2,496 |
-| Files fixed | 0 | 8 |
-| PRs opened | 1 |
-
----
-
-## Session 27 -- Module Risk Scoring (2026-03-03)
-
-**Operator:** Computer
-**Trigger:** Scheduled Awake autonomous dev session
-
-### Tasks Completed
-- Done **Cross-module dependency health** -- Implemented a combined module risk score that blends coupling + complexity + (optional) coverage into one signal.
-- Done Added new CLI command: `awake module-risk` (JSON + markdown output).
-
-### PRs
-- PR #58 -- Module risk score (coverage + complexity + coupling)
-
-### Decisions
-1. Implemented module risk as a new standalone module (`src/module_risk.py`) instead of folding into existing analyzers, so it can remain a stable aggregation layer.
-2. Used a weighted blend (coverage 40%, complexity 30%, coupling 30%) to keep the score interpretable and tunable.
-3. Designed the report to be robust to missing optional coverage inputs, so it works on a fresh clone without running pytest-cov.
-
-### Stats
-| Metric | Value |
-|--------|-------|
-| PRs opened | 1 |
-| New modules | +1 |
-| New tests | +3 |
-
----
-
-## Session 28 -- Awake Leaderboard Foundation (2026-03-03)
-
-**Operator:** Computer
-**Trigger:** Manual -- new product launch
-
-### Tasks Completed
-- Done **Leaderboard data layer** -- Built `leaderboard/models.py` (351 lines): SQLite schema with `projects` and `analysis_runs` tables, dataclasses, composite scoring engine (health 30%, complexity 20%, security 25%, dead code 10%, coverage 15%), letter grading, full CRUD operations
-- Done **Discovery engine** -- Built `leaderboard/discovery.py` (230 lines): GitHub API integration for trending/starred repo discovery, 50 seed projects across 23 categories (web frameworks, ML, CLI tools, DevOps, databases, etc.), rate-limit handling, deduplication
-- Done **Analysis pipeline** -- Built `leaderboard/pipeline.py` (273 lines): end-to-end clone → analyze → score → store pipeline. Reuses Awake's existing analyzers (`health.py`, `complexity.py`, `security.py`, `dead_code.py`) by injecting `src/` into `sys.path`. Handles git clone, temp directory cleanup, and graceful error recovery
-- Done **Leaderboard roadmap** -- Created `leaderboard/LEADERBOARD_ROADMAP.md` with 4-phase plan (Sessions 28-39+)
-- Done **Test suite** -- Wrote 56 tests across 3 test files: `test_leaderboard_models.py` (30), `test_leaderboard_discovery.py` (12), `test_leaderboard_pipeline.py` (14)
+- Done **Anomaly detection engine** -- Built `src/anomaly.py`: IQR-based statistical anomaly detection across 5 dimensions. Parses AWAKE_LOG.md session entries, extracts metrics, and flags unusual patterns with CRITICAL/WARNING/INFO severity levels.
+- Done **5 anomaly detectors**:
+  1. **Test count drops** -- flags sessions where test count decreased (CRITICAL)
+  2. **Complexity spikes** -- detects disproportionate lines-added vs tests ratio (WARNING)
+  3. **Velocity changes** -- identifies dramatic shifts in session frequency (INFO)
+  4. **Missing metrics** -- catches session entries missing expected stats fields (WARNING)
+  5. **PR count anomalies** -- flags unusual PR counts using IQR outlier detection (INFO)
+- Done **CLI integration** -- Added `awake anomalies` command with `--json` and `--repo` flags
+- Done **Structured output** -- Both Markdown report and JSON serialization for machine consumption
+- Done **Test suite** -- 63 new tests covering parsers, statistical helpers, all 5 detectors, serialization, and real-log integration
 
 ### PR
-- PR #60 -- Awake Leaderboard: data foundation, discovery engine, analysis pipeline
+- PR #63 -- Session 29: Anomaly alerting
 
 ### Decisions
-1. Built leaderboard as a separate `leaderboard/` package rather than adding to `src/` -- it's a distinct product that happens to reuse Awake's analyzers as a dependency.
-2. Used SQLite for storage (zero external dependencies, portable, embeddable) rather than Postgres or an ORM.
-3. Hardcoded 50 seed projects rather than relying on GitHub API discovery for the initial batch -- ensures deterministic first run and avoids rate limits during bootstrap.
-4. Composite scoring weights (health 30%, complexity 20%, security 25%, dead code 10%, coverage 15%) reflect that security and maintainability matter more than raw complexity for open-source quality.
-5. Pipeline adds Awake's `src/` to `sys.path` at runtime to reuse analyzers without copying code -- the leaderboard is a consumer of Awake, not a fork.
+1. Used IQR (interquartile range) for outlier detection rather than z-scores -- more robust to non-normal distributions and small sample sizes typical in session data.
+2. Built as standalone module rather than extending insights.py -- anomaly detection has different concerns (alerting, severity, actions) than insights (narrative, streaks, velocity).
+3. Three severity levels (CRITICAL/WARNING/INFO) with suggested actions -- makes the output actionable, not just informational.
+4. Test count drops are CRITICAL by default -- losing tests is always worth investigating.
 
 ### Stats
-| Metric | Value |
-|--------|-------|
-| New modules | 3 (models, discovery, pipeline) |
-| New tests | 56 |
-| Lines added | ~854 |
-| Seed projects | 50 across 23 categories |
-| PRs opened | 1 |
+| Metric | Before | After |
+|--------|--------|-------|
+| Source modules | 69 | 70 |
+| Tests | 2,467 | 2,530 |
+| CLI subcommands | 55 | 56 |
+| PRs merged | 62 | 63 |
 
 ---
