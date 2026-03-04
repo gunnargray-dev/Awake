@@ -1,7 +1,7 @@
 """Meta/introspection command group for Awake CLI.
 
 Commands: stats, changelog, story, reflect, evolve, status, session_score,
-timeline, replay, compare, diff, diff_sessions.
+timeline, replay, compare, diff, diff_sessions, insights, anomalies.
 """
 
 from __future__ import annotations
@@ -360,5 +360,25 @@ def cmd_insights(args) -> int:
         f"PRs: {report.total_prs}  "
         f"Insights: {len(report.insights)}  "
         f"Streaks: {len(report.streaks)}"
+    )
+    return 0
+
+
+def cmd_anomalies(args) -> int:
+    """Detect anomalies in session metrics from AWAKE_LOG.md."""
+    from src.anomaly import detect_anomalies
+    _print_header("Anomaly Detection")
+    repo = _repo(getattr(args, "repo", None))
+    report = detect_anomalies(repo_path=repo)
+    if args.json:
+        print(report.to_json())
+        return 0
+    print(report.to_markdown())
+    _print_info(
+        f"Sessions: {report.sessions_analyzed}  "
+        f"Anomalies: {report.total_anomalies}  "
+        f"Critical: {report.critical_count}  "
+        f"Warning: {report.warning_count}  "
+        f"Info: {report.info_count}"
     )
     return 0
