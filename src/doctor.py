@@ -40,7 +40,7 @@ STATUS_OK = "OK"
 STATUS_WARN = "WARN"
 STATUS_FAIL = "FAIL"
 
-STATUS_ICONS = {STATUS_OK: "OK", STATUS_WARN: "WARN", STATUS_FAIL: "FAIL"}
+STATUS_ICONS = {STATUS_OK: "\u2705", STATUS_WARN: "\u26a0\ufe0f", STATUS_FAIL: "\u274c"}
 STATUS_WEIGHT = {STATUS_OK: 0, STATUS_WARN: 1, STATUS_FAIL: 2}
 
 
@@ -266,4 +266,109 @@ def _check_ci_workflow(repo_root: Path) -> Check:
     return Check(STATUS_WARN, "CI workflow", f"CI workflow present but missing Python 3.10 (found: {', '.join(versions)})")
 
 
-# Remaining functions unchanged from repository version.
+def _check_readme(repo_root: Path) -> Check:
+    """Check that README.md exists and is substantial."""
+    readme = repo_root / "README.md"
+    if not readme.exists():
+        return Check(STATUS_FAIL, "README.md", "README.md not found")
+    content = readme.read_text(encoding="utf-8", errors="replace")
+    word_count = len(content.split())
+    if word_count < 30:
+        return Check(STATUS_WARN, "README.md", f"README.md is short ({word_count} words)")
+    return Check(STATUS_OK, "README.md", f"README.md present ({word_count} words)")
+
+
+def _check_roadmap(repo_root: Path) -> Check:
+    """Check that ROADMAP.md exists."""
+    roadmap = repo_root / "ROADMAP.md"
+    if not roadmap.exists():
+        return Check(STATUS_WARN, "ROADMAP.md", "ROADMAP.md not found")
+    return Check(STATUS_OK, "ROADMAP.md", "ROADMAP.md present")
+
+
+def _check_todos(repo_root: Path) -> Check:
+    """Check for TODO/FIXME markers in src/ code."""
+    src = repo_root / "src"
+    if not src.is_dir():
+        return Check(STATUS_WARN, "TODO/FIXME debt", "src/ missing — skipped")
+
+    hits: list[str] = []
+    for py_file in sorted(src.glob("*.py")):
+        for i, line in enumerate(py_file.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
+            if "TODO" in line or "FIXME" in line:
+                hits.append(f"{py_file.name}:{i}: {line.strip()}")
+
+    if not hits:
+        return Check(STATUS_OK, "TODO/FIXME debt", "No TODO/FIXME markers in src/")
+    status = STATUS_FAIL if len(hits) > 10 else STATUS_WARN
+    return Check(
+        status, "TODO/FIXME debt",
+        f"{len(hits)} TODO/FIXME marker(s) found in src/",
+        detail="\n".join(hits[:20]),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
+
+
+def diagnose(repo_root: Path) -> DiagnosticReport:
+    """Run all doctor checks and return a DiagnosticReport."""
+    checks = [
+        _check_src_exists(repo_root),
+        _check_tests_exist(repo_root),
+        _check_test_coverage(repo_root),
+        _check_syntax(repo_root),
+        _check_docstrings(repo_root),
+        _check_future_annotations(repo_root),
+        _check_ci_workflow(repo_root),
+        _check_readme(repo_root),
+        _check_roadmap(repo_root),
+        _check_todos(repo_root),
+    ]
+    return DiagnosticReport(checks=checks)
+
+
+def render_report(report: DiagnosticReport) -> str:
+    """Render a DiagnosticReport as a Markdown string."""
+    lines = [
+        "# Awake Doctor Report",
+        "",
+        f"**Generated:** {report.generated_at}",
+        "",
+        f"**Overall Grade: {report.grade}**",
+        "",
+        "## Summary",
+        "",
+        f"| Metric   | Count |",
+        f"|----------|------:|",
+        f"| Passing  | {report.ok_count} |",
+        f"| Warnings | {report.warn_count} |",
+        f"| Failures | {report.fail_count} |",
+        f"| Total    | {len(report.checks)} |",
+        "",
+        "## Check Results",
+        "",
+    ]
+    for c in report.checks:
+        lines.append(f"- {c.icon} **{c.name}**: {c.message}")
+        if c.detail:
+            for detail_line in c.detail.splitlines():
+                lines.append(f"  - {detail_line}")
+
+    lines.append("")
+    return "\n".join(lines)
+
+
+def save_report(report: DiagnosticReport, out_path: Path) -> None:
+    """Write report as Markdown and a JSON sidecar."""
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    md_content = render_report(report)
+    out_path.write_text(md_content, encoding="utf-8")
+
+    json_path = out_path.with_suffix(".json")
+    json_path.write_text(
+        json.dumps(report.to_dict(), indent=2, default=str),
+        encoding="utf-8",
+    )
