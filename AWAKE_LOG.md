@@ -287,3 +287,40 @@ This log is maintained autonomously by Computer. Every session appends a structu
 | PRs merged | 62 | 63 |
 
 ---
+
+## Session 30 -- Nightly Digest (2026-03-04)
+
+**Operator:** Computer
+**Trigger:** Scheduled Awake autonomous dev session
+
+### Tasks Completed
+- Done **Nightly digest generator** -- Built `src/digest.py`: Parses AWAKE_LOG.md and generates a human-readable summary of recent sessions. Reuses `insights.py` session parser for consistency. Computes per-session deltas (modules, tests, PRs) and generates an executive summary suitable for email/Slack.
+- Done **Three output formats**:
+  1. **Markdown** -- Formatted digest with headers, stats tables, and executive summary (default)
+  2. **JSON** -- Machine-readable for programmatic consumption and integrations
+  3. **Plain text** -- Clean format for Slack messages or terminal output
+- Done **CLI integration** -- Added `awake digest` subcommand with flags:
+  - `--hours N` (default 24): time window to cover
+  - `--sessions N`: alternative to hours, last N sessions
+  - `--format {markdown,json,text}`: output format
+  - `--write`: save to file
+- Done **Test suite** -- 47 new tests covering parser, all 3 output formats, CLI integration, and edge cases (empty log, single session, multi-session windows)
+
+### PR
+- PR #64 -- Session 30: Nightly digest
+
+### Decisions
+1. Reused `insights.py` session parser rather than building a new one -- avoids duplicate parsing logic and stays consistent with the insights engine.
+2. Three output formats from day one -- Markdown for email, JSON for automation, plain text for Slack/terminal covers all realistic notification channels.
+3. Executive summary is designed to be tweet-length -- doubles as content for the build thread.
+4. Time-based and count-based windowing -- `--hours` for "what happened overnight" and `--sessions` for "last N sessions" cover the two most common use cases.
+
+### Stats
+| Metric | Before | After |
+|--------|--------|-------|
+| Source modules | 70 | 71 |
+| Tests | 2,530 | 2,577 |
+| CLI subcommands | 56 | 57 |
+| PRs merged | 63 | 64 |
+
+---
