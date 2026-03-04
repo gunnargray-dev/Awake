@@ -111,6 +111,7 @@ from src.commands.meta import (
     cmd_diff_sessions,
     cmd_insights,
     cmd_anomalies,
+    cmd_digest,
 )
 
 from src.commands.tools import (
@@ -157,7 +158,7 @@ __all__ = [
     "cmd_stats", "cmd_changelog", "cmd_story", "cmd_reflect", "cmd_evolve",
     "cmd_status", "cmd_session_score", "cmd_timeline", "cmd_replay",
     "cmd_compare", "cmd_diff", "cmd_diff_sessions", "cmd_insights",
-    "cmd_anomalies",
+    "cmd_anomalies", "cmd_digest",
     "cmd_doctor", "cmd_todos", "cmd_benchmark", "cmd_gitstats", "cmd_badges",
     "cmd_audit", "cmd_predict", "cmd_teach", "cmd_dna", "cmd_report",
     "cmd_export", "cmd_coverage", "cmd_score", "cmd_test_quality",
@@ -353,6 +354,16 @@ def build_parser() -> argparse.ArgumentParser:
     _add_json(p_anomalies)
     _add_repo(p_anomalies)
     p_anomalies.set_defaults(func=cmd_anomalies)
+
+    # digest
+    p_digest = sub.add_parser("digest", help="Nightly digest of recent sessions")
+    p_digest.add_argument("--hours", type=int, default=24, help="Time window in hours (default: 24)")
+    p_digest.add_argument("--sessions", type=int, default=None, help="Last N sessions (overrides --hours)")
+    p_digest.add_argument("--format", choices=["markdown", "json", "text"], default="markdown",
+                          help="Output format (default: markdown)")
+    _add_write(p_digest)
+    _add_repo(p_digest)
+    p_digest.set_defaults(func=cmd_digest)
 
     # ------------------------------------------------------------------
     # Tools commands

@@ -1,0 +1,389 @@
+"""
+digest.py — Nightly digest generator for Awake session metrics.
+
+Produces a human-readable summary of what Computer built in the most
+recent session(s).  Designed to be the report you'd want to wake up to:
+concise, informative, and self-contained.
+
+Supports three output formats:
+  - Markdown (default) — suitable for email
+  - JSON — for programmatic consumption
+  - Plain text — for Slack/terminal
+
+Public API
+----------
+generate_digest(repo_path, log_path=None, hours=24, sessions=None) -> DigestReport
+"""
+
+from __future__ import annotations
+
+import json
+import re
+from dataclasses import dataclass, field, asdict
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from typing import Optional
+
+from src.insights import _parse_sessions, SessionRecord
+
+
+# ---------------------------------------------------------------------------
+# Data structures
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class SessionDigest:
+    """Summary of a single session for the digest."""
+
+    number: int
+    date: str
+    title: str
+    tasks: list  # list[str]
+    pr_count: int
+    pr_titles: list  # list[str]
+    modules: int      # cumulative after session
+    tests: int        # cumulative after session
+    modules_added: int
+    tests_added: int
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+
+@dataclass
+class DigestReport:
+    """Full nightly digest across one or more sessions."""
+
+    sessions: list              # list[SessionDigest]
+    session_count: int
+    date_range: str             # "2026-02-28" or "2026-02-27 – 2026-02-28"
+    total_tasks: int
+    total_prs: int
+    total_modules_added: int
+    total_tests_added: int
+    current_modules: int        # cumulative after last session in window
+    current_tests: int          # cumulative after last session in window
+    executive_summary: str      # one-paragraph human-readable summary
+
+    def to_dict(self) -> dict:
+        return {
+            "session_count": self.session_count,
+            "date_range": self.date_range,
+            "total_tasks": self.total_tasks,
+            "total_prs": self.total_prs,
+            "total_modules_added": self.total_modules_added,
+            "total_tests_added": self.total_tests_added,
+            "current_modules": self.current_modules,
+            "current_tests": self.current_tests,
+            "executive_summary": self.executive_summary,
+            "sessions": [s.to_dict() for s in self.sessions],
+        }
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict(), indent=2)
+
+    def to_markdown(self) -> str:
+        lines: list[str] = []
+        lines.append("# Awake: Nightly Digest")
+        lines.append("")
+        lines.append(
+            "> *What Computer built while you were away.*"
+        )
+        lines.append("")
+        lines.append("---")
+        lines.append("")
+
+        # Executive summary
+        lines.append("## TL;DR")
+        lines.append("")
+        lines.append(self.executive_summary)
+        lines.append("")
+
+        # Stats overview
+        lines.append("## Overview")
+        lines.append("")
+        lines.append("| Metric | Value |")
+        lines.append("|--------|-------|")
+        lines.append(f"| Sessions | {self.session_count} |")
+        lines.append(f"| Date range | {self.date_range} |")
+        lines.append(f"| Tasks completed | {self.total_tasks} |")
+        lines.append(f"| PRs opened | {self.total_prs} |")
+        lines.append(f"| Modules added | {self.total_modules_added} |")
+        lines.append(f"| Tests added | {self.total_tests_added} |")
+        lines.append(f"| Total modules | {self.current_modules} |")
+        lines.append(f"| Total tests | {self.current_tests} |")
+        lines.append("")
+
+        # Per-session detail
+        if self.sessions:
+            lines.append("## Session Details")
+            lines.append("")
+            for s in self.sessions:
+                lines.append(f"### Session {s.number}: {s.title}")
+                lines.append(f"*{s.date}*")
+                lines.append("")
+                if s.tasks:
+                    lines.append("**Tasks:**")
+                    for t in s.tasks:
+                        lines.append(f"- {t}")
+                    lines.append("")
+                if s.pr_titles:
+                    lines.append("**PRs:**")
+                    for pr in s.pr_titles:
+                        lines.append(f"- {pr}")
+                    lines.append("")
+                deltas: list[str] = []
+                if s.modules_added:
+                    deltas.append(f"+{s.modules_added} modules")
+                if s.tests_added:
+                    deltas.append(f"+{s.tests_added} tests")
+                if deltas:
+                    lines.append(f"**Growth:** {', '.join(deltas)}")
+                    lines.append("")
+
+        lines.append("---")
+        lines.append("")
+        lines.append(
+            "*Generated by `awake digest` — "
+            "the nightly summary of autonomous development.*"
+        )
+        lines.append("")
+        return "\n".join(lines)
+
+    def to_text(self) -> str:
+        lines: list[str] = []
+        lines.append("AWAKE NIGHTLY DIGEST")
+        lines.append("=" * 40)
+        lines.append("")
+        lines.append(self.executive_summary)
+        lines.append("")
+        lines.append(f"Sessions: {self.session_count} | "
+                      f"Tasks: {self.total_tasks} | "
+                      f"PRs: {self.total_prs}")
+        lines.append(f"Modules: +{self.total_modules_added} "
+                      f"(total {self.current_modules}) | "
+                      f"Tests: +{self.total_tests_added} "
+                      f"(total {self.current_tests})")
+        lines.append("")
+
+        for s in self.sessions:
+            lines.append(f"--- Session {s.number}: {s.title} ({s.date}) ---")
+            for t in s.tasks:
+                lines.append(f"  - {t}")
+            if s.pr_titles:
+                lines.append(f"  PRs: {', '.join(s.pr_titles)}")
+            lines.append("")
+
+        return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# Digest generation
+# ---------------------------------------------------------------------------
+
+
+def _compute_deltas(
+    records: list[SessionRecord],
+    all_records: list[SessionRecord],
+) -> list[SessionDigest]:
+    """Turn SessionRecords into SessionDigests with per-session deltas."""
+    # Build a lookup for all records to compute deltas correctly
+    all_sorted = sorted(all_records, key=lambda r: r.number)
+    prev_modules: dict[int, int] = {}
+    prev_tests: dict[int, int] = {}
+    prev_m = 0
+    prev_t = 0
+    for rec in all_sorted:
+        prev_modules[rec.number] = prev_m
+        prev_tests[rec.number] = prev_t
+        if rec.modules > 0:
+            prev_m = rec.modules
+        if rec.tests > 0:
+            prev_t = rec.tests
+
+    digests: list[SessionDigest] = []
+    for rec in records:
+        pm = prev_modules.get(rec.number, 0)
+        pt = prev_tests.get(rec.number, 0)
+        modules_added = max(0, rec.modules - pm) if rec.modules > 0 else 0
+        tests_added = max(0, rec.tests - pt) if rec.tests > 0 else 0
+
+        digests.append(SessionDigest(
+            number=rec.number,
+            date=rec.date,
+            title=rec.title,
+            tasks=list(rec.tasks),
+            pr_count=rec.prs,
+            pr_titles=list(rec.pr_titles),
+            modules=rec.modules,
+            tests=rec.tests,
+            modules_added=modules_added,
+            tests_added=tests_added,
+        ))
+    return digests
+
+
+def _build_executive_summary(digests: list[SessionDigest]) -> str:
+    """Generate a one-paragraph summary of the digest."""
+    if not digests:
+        return "No sessions found in the specified time window."
+
+    session_count = len(digests)
+    total_tasks = sum(len(d.tasks) for d in digests)
+    total_prs = sum(d.pr_count for d in digests)
+    total_modules_added = sum(d.modules_added for d in digests)
+    total_tests_added = sum(d.tests_added for d in digests)
+
+    if session_count == 1:
+        d = digests[0]
+        parts = [f"Session {d.number} ({d.title})"]
+        achievements: list[str] = []
+        if total_tasks:
+            achievements.append(f"completed {total_tasks} task{'s' if total_tasks != 1 else ''}")
+        if total_prs:
+            achievements.append(f"opened {total_prs} PR{'s' if total_prs != 1 else ''}")
+        if total_modules_added:
+            achievements.append(f"added {total_modules_added} module{'s' if total_modules_added != 1 else ''}")
+        if total_tests_added:
+            achievements.append(f"added {total_tests_added} test{'s' if total_tests_added != 1 else ''}")
+        if achievements:
+            parts.append(": " + ", ".join(achievements) + ".")
+        else:
+            parts.append(".")
+        return "".join(parts)
+
+    # Multi-session summary
+    session_range = f"Sessions {digests[0].number}–{digests[-1].number}"
+    parts = [session_range]
+    achievements = []
+    if total_tasks:
+        achievements.append(f"{total_tasks} tasks completed")
+    if total_prs:
+        achievements.append(f"{total_prs} PRs opened")
+    if total_modules_added:
+        achievements.append(f"{total_modules_added} modules added")
+    if total_tests_added:
+        achievements.append(f"{total_tests_added} tests added")
+    if achievements:
+        parts.append(f" covered {', '.join(achievements)}.")
+    else:
+        parts.append(".")
+
+    # Highlight top titles
+    titles = [d.title for d in digests]
+    if len(titles) <= 3:
+        parts.append(f" Built: {', '.join(titles)}.")
+    else:
+        parts.append(f" Highlights: {', '.join(titles[:3])}, and {len(titles) - 3} more.")
+
+    return "".join(parts)
+
+
+def _filter_by_hours(
+    records: list[SessionRecord], hours: int,
+) -> list[SessionRecord]:
+    """Filter records to those within the last N hours."""
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+    cutoff_date_str = cutoff.strftime("%Y-%m-%d")
+
+    return [r for r in records if r.date >= cutoff_date_str]
+
+
+def _filter_by_session_count(
+    records: list[SessionRecord], count: int,
+) -> list[SessionRecord]:
+    """Return the last N sessions by session number."""
+    sorted_records = sorted(records, key=lambda r: r.number)
+    return sorted_records[-count:] if count < len(sorted_records) else sorted_records
+
+
+def generate_digest(
+    repo_path: Path,
+    log_path: Optional[Path] = None,
+    hours: int = 24,
+    sessions: Optional[int] = None,
+) -> DigestReport:
+    """Generate a nightly digest from AWAKE_LOG.md.
+
+    Args:
+        repo_path: Root of the Awake repository.
+        log_path:  Explicit path to the log file. If None, defaults to
+                   ``repo_path / "AWAKE_LOG.md"``.
+        hours:     Time window in hours (default 24). Ignored if
+                   ``sessions`` is set.
+        sessions:  If set, return the last N sessions instead of
+                   filtering by time.
+
+    Returns:
+        DigestReport with session summaries, deltas, and executive summary.
+    """
+    if log_path is None:
+        log_path = repo_path / "AWAKE_LOG.md"
+
+    log_text = ""
+    if log_path.exists():
+        log_text = log_path.read_text(encoding="utf-8")
+
+    all_records = _parse_sessions(log_text)
+    if not all_records:
+        return DigestReport(
+            sessions=[],
+            session_count=0,
+            date_range="",
+            total_tasks=0,
+            total_prs=0,
+            total_modules_added=0,
+            total_tests_added=0,
+            current_modules=0,
+            current_tests=0,
+            executive_summary="No sessions found in AWAKE_LOG.md.",
+        )
+
+    all_records_sorted = sorted(all_records, key=lambda r: r.number)
+
+    # Filter to window
+    if sessions is not None:
+        window_records = _filter_by_session_count(all_records_sorted, sessions)
+    else:
+        window_records = _filter_by_hours(all_records_sorted, hours)
+
+    # If time-based filter returns nothing, fall back to last session
+    if not window_records:
+        window_records = [all_records_sorted[-1]]
+
+    # Compute deltas
+    digests = _compute_deltas(window_records, all_records_sorted)
+
+    # Compute aggregates
+    total_tasks = sum(len(d.tasks) for d in digests)
+    total_prs = sum(d.pr_count for d in digests)
+    total_modules_added = sum(d.modules_added for d in digests)
+    total_tests_added = sum(d.tests_added for d in digests)
+
+    # Current totals from the last session in the window
+    last = digests[-1]
+    current_modules = last.modules
+    current_tests = last.tests
+
+    # Date range
+    dates = [d.date for d in digests]
+    if dates[0] == dates[-1]:
+        date_range = dates[0]
+    else:
+        date_range = f"{dates[0]} \u2013 {dates[-1]}"
+
+    executive_summary = _build_executive_summary(digests)
+
+    return DigestReport(
+        sessions=digests,
+        session_count=len(digests),
+        date_range=date_range,
+        total_tasks=total_tasks,
+        total_prs=total_prs,
+        total_modules_added=total_modules_added,
+        total_tests_added=total_tests_added,
+        current_modules=current_modules,
+        current_tests=current_tests,
+        executive_summary=executive_summary,
+    )

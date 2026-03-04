@@ -1,7 +1,7 @@
 """Meta/introspection command group for Awake CLI.
 
 Commands: stats, changelog, story, reflect, evolve, status, session_score,
-timeline, replay, compare, diff, diff_sessions, insights, anomalies.
+timeline, replay, compare, diff, diff_sessions, insights, anomalies, digest.
 """
 
 from __future__ import annotations
@@ -380,5 +380,42 @@ def cmd_anomalies(args) -> int:
         f"Critical: {report.critical_count}  "
         f"Warning: {report.warning_count}  "
         f"Info: {report.info_count}"
+    )
+    return 0
+
+
+def cmd_digest(args) -> int:
+    """Generate a nightly digest of recent session activity."""
+    from src.digest import generate_digest
+    _print_header("Nightly Digest")
+    repo = _repo(getattr(args, "repo", None))
+    sessions_arg = getattr(args, "sessions", None)
+    hours_arg = getattr(args, "hours", 24)
+    fmt = getattr(args, "format", "markdown")
+
+    report = generate_digest(
+        repo_path=repo,
+        hours=hours_arg,
+        sessions=sessions_arg,
+    )
+
+    if fmt == "json":
+        print(report.to_json())
+        return 0
+    elif fmt == "text":
+        print(report.to_text())
+    else:
+        print(report.to_markdown())
+
+    if getattr(args, "write", False):
+        out = repo / "docs" / "digest.md"
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(report.to_markdown(), encoding="utf-8")
+        _print_ok(f"Digest written to {out}")
+
+    _print_info(
+        f"Sessions: {report.session_count}  "
+        f"Tasks: {report.total_tasks}  "
+        f"PRs: {report.total_prs}"
     )
     return 0
