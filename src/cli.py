@@ -518,14 +518,22 @@ def build_parser() -> argparse.ArgumentParser:
     p_modrisk.set_defaults(func=cmd_module_risk)
 
     # plan / brain
-    p_plan = sub.add_parser("plan", help="Session task planner")
+    p_plan = sub.add_parser("plan", help="Session task planner (insights-driven)")
     p_plan.add_argument("--session", type=int, default=1, help="Session number")
+    p_plan.add_argument("--top", type=int, default=5, help="Number of tasks to recommend (default: 5)")
+    p_plan.add_argument("--format", choices=["markdown", "json"], default="markdown",
+                        help="Output format (default: markdown)")
+    p_plan.add_argument("--write", action="store_true", help="Save plan to docs/session_plan.md")
     p_plan.add_argument("--json", action="store_true", help="Output raw JSON")
     _add_repo(p_plan)
     p_plan.set_defaults(func=cmd_plan)
 
     p_brain = sub.add_parser("brain", help="Session task planner (alias for plan)")
     p_brain.add_argument("--session", type=int, default=1, help="Session number")
+    p_brain.add_argument("--top", type=int, default=5, help="Number of tasks to recommend (default: 5)")
+    p_brain.add_argument("--format", choices=["markdown", "json"], default="markdown",
+                         help="Output format (default: markdown)")
+    p_brain.add_argument("--write", action="store_true", help="Save plan to docs/session_plan.md")
     p_brain.add_argument("--json", action="store_true", help="Output raw JSON")
     _add_repo(p_brain)
     p_brain.set_defaults(func=cmd_plan)

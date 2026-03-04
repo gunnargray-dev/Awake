@@ -519,18 +519,31 @@ def cmd_trends(args) -> int:
 
 
 def cmd_plan(args) -> int:
-    """Session task planner."""
-    from src.brain import Brain
-    _print_header(f"Session Plan — Session {args.session}")
+    """Session task planner — uses the insights-driven planner."""
+    from src.planner import generate_plan, save_plan
+    _print_header("Session Planner")
     repo = _repo(getattr(args, "repo", None))
-    brain = Brain(repo_path=repo)
-    plan = brain.plan(
-        session_number=args.session,
-    )
-    if args.json:
-        print(json.dumps(plan.to_dict(), indent=2, default=str))
+    top = getattr(args, "top", 5)
+    fmt = getattr(args, "format", "markdown")
+
+    plan = generate_plan(repo_path=repo, top=top)
+
+    if fmt == "json" or getattr(args, "json", False):
+        print(plan.to_json())
         return 0
+
     print(plan.to_markdown())
+
+    if getattr(args, "write", False):
+        out = repo / "docs" / "session_plan.md"
+        save_plan(plan, out)
+        _print_ok(f"Plan written to {out}")
+
+    _print_info(
+        f"Tasks: {plan.task_count}  "
+        f"Signals: {plan.signals_collected}  "
+        f"Modules: {len(plan.modules_consulted)}"
+    )
     return 0
 
 
