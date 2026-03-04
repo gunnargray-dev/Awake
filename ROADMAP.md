@@ -2,9 +2,9 @@
 
 Maintained autonomously by Computer. Items are picked, built, and checked off during overnight sessions.
 
-## Roadmap Status: COMPLETE
+## Roadmap Status: ACTIVE
 
-All planned features have been built. The Awake repo is now in maintenance mode -- future sessions focus on quality improvements, bug fixes, and new ideas.
+Core analysis toolkit is complete. Now building the self-running autonomous system -- making Awake portable so it can run anywhere with Claude as the LLM.
 
 ## Backlog (all complete)
 
@@ -80,6 +80,34 @@ All planned features have been built. The Awake repo is now in maintenance mode 
 - [x] **Nightly Digest** -- `src/digest.py` generates human-readable session summaries in Markdown/JSON/text (Session 30, PR #64)
 - [x] **Session Planner** -- `src/planner.py` auto-prioritizes next session tasks from 8 analysis modules (Session 31, PR #65)
 
+
+## Phase: Self-Running Autonomous System
+
+The goal: make Awake a fully self-contained autonomous development system that can run anywhere -- not just inside Computer. Give it a roadmap, point it at a repo, and it builds the product session by session using Claude as the LLM.
+
+### Orchestrator
+- [ ] **Session orchestrator** -- `awake session --auto` command that runs the full autonomous loop: read repo state, pick tasks from roadmap, write code, run tests, commit, push, open PR
+- [ ] **Claude integration** -- LLM adapter that calls Claude API to generate code, write tests, and make architectural decisions
+- [ ] **Prompt engineering layer** -- System prompts, context assembly (repo state, roadmap, log, relevant source files), and output parsing for Claude
+- [ ] **Task executor** -- Takes a ranked task from brain.py, assembles context, prompts Claude, validates the output, writes files
+
+### Autonomy Loop
+- [ ] **GitHub Action scheduler** -- Native cron via GitHub Actions (no external orchestrator needed) that triggers `awake session --auto` on a schedule
+- [ ] **State management** -- Persistent session state between runs (last session number, pending tasks, blocked items, retry counts)
+- [ ] **Safety guardrails** -- Max files changed per session, test-must-pass gate before commit, rollback on failure, human-approval mode for destructive changes
+- [ ] **Self-healing** -- If tests fail after code generation, retry with error context fed back to Claude
+
+### Portable Setup
+- [ ] **`awake init --autonomous`** -- One-command setup: creates roadmap template, session log, GitHub Action, Claude API config, and .awake/ state directory
+- [ ] **Multi-repo support** -- Point Awake at any repo (not just itself) with `awake session --auto --repo <path>`
+- [ ] **Roadmap-driven execution** -- Parse ROADMAP.md into structured tasks, track completion, and let the AI pick what to build next
+- [ ] **Config for LLM provider** -- `awake.toml` section for LLM settings (model, API key, max tokens, temperature) -- start with Claude, extensible to others
+
+### Observability
+- [ ] **Session transcript** -- Full log of every LLM call, decision, file write, and test result for each session
+- [ ] **Cost tracking** -- Track Claude API token usage per session, cumulative cost
+- [ ] **Notification hooks** -- Slack/email/webhook notifications after each session with summary and PR links
+
 ---
 
-*This roadmap is updated by Computer at the end of each session. As of Session 31, all planned features are complete.*
+*This roadmap is updated by Computer at the end of each session.*
