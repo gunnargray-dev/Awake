@@ -110,6 +110,7 @@ from src.commands.meta import (
     cmd_diff,
     cmd_diff_sessions,
     cmd_insights,
+    cmd_anomalies,
 )
 
 from src.commands.tools import (
@@ -156,6 +157,7 @@ __all__ = [
     "cmd_stats", "cmd_changelog", "cmd_story", "cmd_reflect", "cmd_evolve",
     "cmd_status", "cmd_session_score", "cmd_timeline", "cmd_replay",
     "cmd_compare", "cmd_diff", "cmd_diff_sessions", "cmd_insights",
+    "cmd_anomalies",
     "cmd_doctor", "cmd_todos", "cmd_benchmark", "cmd_gitstats", "cmd_badges",
     "cmd_audit", "cmd_predict", "cmd_teach", "cmd_dna", "cmd_report",
     "cmd_export", "cmd_coverage", "cmd_score", "cmd_test_quality",
@@ -345,6 +347,12 @@ def build_parser() -> argparse.ArgumentParser:
     _add_json(p_insights)
     _add_repo(p_insights)
     p_insights.set_defaults(func=cmd_insights)
+
+    # anomalies
+    p_anomalies = sub.add_parser("anomalies", help="Detect anomalies in session metrics")
+    _add_json(p_anomalies)
+    _add_repo(p_anomalies)
+    p_anomalies.set_defaults(func=cmd_anomalies)
 
     # ------------------------------------------------------------------
     # Tools commands
