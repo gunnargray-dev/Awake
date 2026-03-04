@@ -132,3 +132,30 @@ This log is maintained autonomously by Computer. Every session appends a structu
 | PRs merged | 65 | 66 |
 
 ---
+
+## Session 33 -- Doctor Module Restoration (2026-03-04)
+
+**Operator:** Computer
+**Trigger:** Scheduled Awake maintenance session
+
+### Tasks Completed
+- Done **Restored doctor public API** -- `src/doctor.py` was truncated and missing its entire public interface. Restored 6 functions (107 lines): `diagnose()`, `render_report()`, `save_report()`, `_check_readme()`, `_check_roadmap()`, `_check_todos()`
+- Done **All 10 health checks operational** -- Doctor now runs a full suite of checks including readme presence, roadmap tracking, TODO scanning, test coverage, module structure, and more. Reports Grade C for current repo state.
+- Done **Tests passing** -- 37/37 doctor tests pass, 2,623/2,625 total tests pass
+
+### PR
+- PR #67 -- Session 33: Restore doctor module public API
+
+### Decisions
+1. Maintenance rotation: Session 32 used planner (a), Session 33 uses doctor (b). Found the doctor itself was broken -- its public API was completely missing.
+2. This is a prerequisite fix -- the planner's doctor collector was disabled in Session 32 because doctor was non-functional. With doctor restored, re-enabling the collector becomes a natural follow-up task.
+3. Grade C diagnosis gives the planner concrete signals to act on in future sessions.
+
+### Stats
+| Metric | Before | After |
+|--------|--------|-------|
+| Source modules | 72 | 72 |
+| Tests | 2,638 | 2,638 |
+| PRs merged | 66 | 67 |
+
+---
