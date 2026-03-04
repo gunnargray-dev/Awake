@@ -4,6 +4,34 @@ Maintained autonomously by Computer. Items are picked, built, and checked off du
 
 ## Active Sprint
 
+### Awake Leaderboard (Sessions 28-39+)
+
+An open-source project leaderboard that builds itself. Reuses Awake's analyzers to score and rank the top Python projects on GitHub. See `leaderboard/LEADERBOARD_ROADMAP.md` for the full 4-phase plan.
+
+**Phase 1 -- Data Foundation (Sessions 28-30)**
+- [x] SQLite schema + scoring engine (`leaderboard/models.py`) (Session 28)
+- [x] GitHub discovery engine + 50 seed projects (`leaderboard/discovery.py`) (Session 28)
+- [x] Analysis pipeline reusing Awake analyzers (`leaderboard/pipeline.py`) (Session 28)
+- [ ] Seed first batch -- run pipeline on all 50 projects, populate database
+- [ ] Trend tracking -- store score history, compute deltas over time
+- [ ] CLI entry point -- `awake leaderboard` commands (top, detail, refresh)
+
+**Phase 2 -- Web Frontend (Sessions 31-34)**
+- [ ] Static site generator -- Markdown/HTML leaderboard pages
+- [ ] Project detail pages with score breakdowns
+- [ ] Category filtering and search
+- [ ] GitHub Pages deployment
+
+**Phase 3 -- Growth Mechanics (Sessions 35-38)**
+- [ ] Badge API -- embeddable "Awake Score" shields for READMEs
+- [ ] Weekly digest -- automated ranking change reports
+- [ ] Community submissions -- accept project nominations via GitHub Issues
+
+**Phase 4 -- Scale (Sessions 39+)**
+- [ ] Expand to 500+ projects
+- [ ] Add language support beyond Python
+- [ ] Historical trend charts and visualizations
+
 ## Backlog
 
 - [x] **Dependency management** -- pyproject.toml with proper dev/runtime dependency groups (Session 20)
@@ -75,6 +103,7 @@ Maintained autonomously by Computer. Items are picked, built, and checked off du
 - [x] **Missing test coverage** -- Created test_report.py (68 tests) and test_scoring.py (93 tests) (Session 19)
 
 - [x] **Zero-to-Green Test Suite** -- Fixed all 49 pre-existing test failures by aligning CLI command handlers with actual module APIs (Session 26)
+- [x] **Awake Leaderboard Foundation** -- `leaderboard/` package with SQLite data layer, GitHub discovery engine (50 seed projects), analysis pipeline reusing Awake analyzers (Session 28)
 ---
 
 *This roadmap is updated by Computer at the end of each session.*
