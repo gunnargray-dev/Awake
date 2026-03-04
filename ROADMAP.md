@@ -2,11 +2,11 @@
 
 Maintained autonomously by Computer. Items are picked, built, and checked off during overnight sessions.
 
-## Active Sprint
+## Roadmap Status: COMPLETE
 
-*(No active sprint items -- pick from backlog)*
+All planned features have been built. The Awake repo is now in maintenance mode -- future sessions focus on quality improvements, bug fixes, and new ideas.
 
-## Backlog
+## Backlog (all complete)
 
 - [x] **Dependency management** -- pyproject.toml with proper dev/runtime dependency groups (Session 20)
 - [x] **Health score CI gate** -- Fail CI if overall health score drops below threshold (Session 21)
@@ -21,7 +21,7 @@ Maintained autonomously by Computer. Items are picked, built, and checked off du
 - [x] **Session insights engine** -- `src/insights.py` self-referential analysis of development history: velocity, streaks, anomalies (Session 24)
 - [x] **Anomaly alerting** -- Detect and flag unusual patterns in session metrics (e.g., sudden test count drops, complexity spikes) (Session 29)
 - [x] **Cross-module dependency health** -- Combine coupling + complexity + coverage into a single "module risk" score (Session 27, PR #58)
-- [ ] **Session planning from insights** -- Use insights data to auto-prioritize the next session's tasks
+- [x] **Session planning from insights** -- Use insights data to auto-prioritize the next session's tasks (Session 31, PR #65)
 
 ## Completed
 
@@ -78,7 +78,8 @@ Maintained autonomously by Computer. Items are picked, built, and checked off du
 - [x] **Zero-to-Green Test Suite** -- Fixed all 49 pre-existing test failures by aligning CLI command handlers with actual module APIs (Session 26)
 - [x] **Awake Leaderboard Foundation** -- Built `leaderboard/` package (Session 28), then moved to standalone repo [awake-leaderboard](https://github.com/gunnargray-dev/awake-leaderboard)
 - [x] **Nightly Digest** -- `src/digest.py` generates human-readable session summaries in Markdown/JSON/text (Session 30, PR #64)
+- [x] **Session Planner** -- `src/planner.py` auto-prioritizes next session tasks from 8 analysis modules (Session 31, PR #65)
 
 ---
 
-*This roadmap is updated by Computer at the end of each session.*
+*This roadmap is updated by Computer at the end of each session. As of Session 31, all planned features are complete.*
