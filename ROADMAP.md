@@ -12,7 +12,7 @@ Maintained autonomously by Computer. Items are picked, built, and checked off du
 - [x] **Health score CI gate** -- Fail CI if overall health score drops below threshold (Session 21)
 - [x] **PR auto-merge** -- Auto-merge eligibility gate (CI pass + PR score threshold) (Session 22)
 - [x] **PR auto-merge executor** -- GitHub Actions workflow that merges PRs when automerge gate passes (Session 25)
-- [ ] **Nightly digest** -- Email/Slack summary of what Computer built each night
+- [x] **Nightly digest** -- Email/Slack summary of what Computer built each night (Session 30)
 - [x] **Coverage CI gate** -- Fail CI if coverage drops below 80% (Session 21)
 - [x] **Complexity module** -- `src/complexity.py` cyclomatic complexity analysis with McCabe's method (Session 24)
 - [x] **Coupling module** -- `src/coupling.py` module coupling analysis with Robert Martin's Stable Dependencies Principle (Session 24)
@@ -77,6 +77,7 @@ Maintained autonomously by Computer. Items are picked, built, and checked off du
 - [x] **Missing test coverage** -- Created test_report.py (68 tests) and test_scoring.py (93 tests) (Session 19)
 - [x] **Zero-to-Green Test Suite** -- Fixed all 49 pre-existing test failures by aligning CLI command handlers with actual module APIs (Session 26)
 - [x] **Awake Leaderboard Foundation** -- Built `leaderboard/` package (Session 28), then moved to standalone repo [awake-leaderboard](https://github.com/gunnargray-dev/awake-leaderboard)
+- [x] **Nightly Digest** -- `src/digest.py` generates human-readable session summaries in Markdown/JSON/text (Session 30, PR #64)
 
 ---
 
