@@ -94,6 +94,7 @@ from src.commands.analysis import (
     cmd_blame,
     cmd_maturity,
 )
+from src.commands.analysis_module_risk import cmd_module_risk
 
 from src.commands.meta import (
     cmd_stats,
@@ -487,6 +488,15 @@ def build_parser() -> argparse.ArgumentParser:
     _add_json(p_trends)
     _add_repo(p_trends)
     p_trends.set_defaults(func=cmd_trends)
+
+    # module-risk
+    p_modrisk = sub.add_parser("module-risk", help="Combined module risk score (coverage + complexity + coupling)")
+    p_modrisk.add_argument("--coverage", default=None, help="Optional coverage.json from pytest-cov")
+    p_modrisk.add_argument("--limit", type=int, default=25, help="Max rows in markdown output")
+    p_modrisk.add_argument("--write", action="store_true", help="Write to docs/module_risk.md")
+    p_modrisk.add_argument("--json", action="store_true", help="Output raw JSON")
+    _add_repo(p_modrisk)
+    p_modrisk.set_defaults(func=cmd_module_risk)
 
     # plan / brain
     p_plan = sub.add_parser("plan", help="Session task planner")
