@@ -258,32 +258,19 @@ This log is maintained autonomously by Computer. Every session appends a structu
 **Trigger:** Scheduled Awake autonomous dev session
 
 ### Tasks Completed
-- Done **Anomaly detection engine** -- Built `src/anomaly.py`: IQR-based statistical anomaly detection across 5 dimensions. Parses AWAKE_LOG.md session entries, extracts metrics, and flags unusual patterns with CRITICAL/WARNING/INFO severity levels.
-- Done **5 anomaly detectors**:
-  1. **Test count drops** -- flags sessions where test count decreased (CRITICAL)
-  2. **Complexity spikes** -- detects disproportionate lines-added vs tests ratio (WARNING)
-  3. **Velocity changes** -- identifies dramatic shifts in session frequency (INFO)
-  4. **Missing metrics** -- catches session entries missing expected stats fields (WARNING)
-  5. **PR count anomalies** -- flags unusual PR counts using IQR outlier detection (INFO)
-- Done **CLI integration** -- Added `awake anomalies` command with `--json` and `--repo` flags
-- Done **Structured output** -- Both Markdown report and JSON serialization for machine consumption
-- Done **Test suite** -- 63 new tests covering parsers, statistical helpers, all 5 detectors, serialization, and real-log integration
+- Done **Anomaly detection engine** -- Built `src/anomaly.py`: IQR-based statistical anomaly detection across 5 dimensions.
+- Done **5 anomaly detectors**: test count drops (CRITICAL), complexity spikes (WARNING), velocity changes (INFO), missing metrics (WARNING), PR count anomalies (INFO)
+- Done **CLI integration** -- Added `awake anomalies` command
+- Done **Test suite** -- 63 new tests
 
 ### PR
 - PR #63 -- Session 29: Anomaly alerting
-
-### Decisions
-1. Used IQR (interquartile range) for outlier detection rather than z-scores -- more robust to non-normal distributions and small sample sizes typical in session data.
-2. Built as standalone module rather than extending insights.py -- anomaly detection has different concerns (alerting, severity, actions) than insights (narrative, streaks, velocity).
-3. Three severity levels (CRITICAL/WARNING/INFO) with suggested actions -- makes the output actionable, not just informational.
-4. Test count drops are CRITICAL by default -- losing tests is always worth investigating.
 
 ### Stats
 | Metric | Before | After |
 |--------|--------|-------|
 | Source modules | 69 | 70 |
 | Tests | 2,467 | 2,530 |
-| CLI subcommands | 55 | 56 |
 | PRs merged | 62 | 63 |
 
 ---
@@ -294,33 +281,54 @@ This log is maintained autonomously by Computer. Every session appends a structu
 **Trigger:** Scheduled Awake autonomous dev session
 
 ### Tasks Completed
-- Done **Nightly digest generator** -- Built `src/digest.py`: Parses AWAKE_LOG.md and generates a human-readable summary of recent sessions. Reuses `insights.py` session parser for consistency. Computes per-session deltas (modules, tests, PRs) and generates an executive summary suitable for email/Slack.
-- Done **Three output formats**:
-  1. **Markdown** -- Formatted digest with headers, stats tables, and executive summary (default)
-  2. **JSON** -- Machine-readable for programmatic consumption and integrations
-  3. **Plain text** -- Clean format for Slack messages or terminal output
-- Done **CLI integration** -- Added `awake digest` subcommand with flags:
-  - `--hours N` (default 24): time window to cover
-  - `--sessions N`: alternative to hours, last N sessions
-  - `--format {markdown,json,text}`: output format
-  - `--write`: save to file
-- Done **Test suite** -- 47 new tests covering parser, all 3 output formats, CLI integration, and edge cases (empty log, single session, multi-session windows)
+- Done **Nightly digest generator** -- Built `src/digest.py`: session summaries in Markdown/JSON/text
+- Done **CLI integration** -- `awake digest` with --hours/--sessions/--format/--write
+- Done **Test suite** -- 47 new tests
 
 ### PR
 - PR #64 -- Session 30: Nightly digest
-
-### Decisions
-1. Reused `insights.py` session parser rather than building a new one -- avoids duplicate parsing logic and stays consistent with the insights engine.
-2. Three output formats from day one -- Markdown for email, JSON for automation, plain text for Slack/terminal covers all realistic notification channels.
-3. Executive summary is designed to be tweet-length -- doubles as content for the build thread.
-4. Time-based and count-based windowing -- `--hours` for "what happened overnight" and `--sessions` for "last N sessions" cover the two most common use cases.
 
 ### Stats
 | Metric | Before | After |
 |--------|--------|-------|
 | Source modules | 70 | 71 |
 | Tests | 2,530 | 2,577 |
-| CLI subcommands | 56 | 57 |
 | PRs merged | 63 | 64 |
+
+---
+
+## Session 31 -- Session Planner (2026-03-04)
+
+**Operator:** Computer
+**Trigger:** Scheduled Awake autonomous dev session
+
+### Tasks Completed
+- Done **Session planner engine** -- Built `src/planner.py`: Pulls signals from 8 analysis modules (anomaly, health, coverage_map, dead_code, todo_hunter, complexity, doctor, insights) and auto-prioritizes tasks for the next session.
+- Done **4-dimension priority scoring**:
+  1. **Urgency** (35%) -- Is this blocking or degrading quality? Anomalies and failing doctor checks score highest.
+  2. **Impact** (30%) -- How much does fixing this improve the repo? Coverage gaps and health issues score high.
+  3. **Effort** (20%, inverted) -- How much work is needed? Simple cleanups and TODO fixes score high.
+  4. **Freshness** (15%) -- When was this area last touched? Stale modules get priority.
+- Done **Self-referential planning** -- The planner can analyze the Awake repo itself and recommend what to work on next, closing the autonomous development loop.
+- Done **CLI integration** -- Added `awake plan` subcommand with `--top N`, `--format {markdown,json}`, `--write`, and `--repo PATH` flags.
+- Done **Graceful degradation** -- If any analysis module is unavailable or fails, the planner skips it and plans with whatever data is available.
+- Done **Test suite** -- 61 new tests covering scoring engine, plan generation, module integration, CLI, and graceful degradation scenarios.
+
+### PR
+- PR #65 -- Session 31: Session planner
+
+### Decisions
+1. Weighted composite scoring with configurable weights -- urgency (35%) dominates because blocking issues should always be addressed first.
+2. Graceful degradation is critical -- the planner must work even when some modules aren't available.
+3. Self-referential by design -- the planner analyzing Awake itself is the ultimate test.
+4. This completes the entire Awake roadmap backlog. Every planned feature has been built.
+
+### Stats
+| Metric | Before | After |
+|--------|--------|-------|
+| Source modules | 71 | 72 |
+| Tests | 2,577 | 2,638 |
+| CLI subcommands | 57 | 58 |
+| PRs merged | 64 | 65 |
 
 ---
