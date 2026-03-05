@@ -93,10 +93,29 @@ class BadgeBlock:
 
 
 def _get_session_count(repo_path: Path) -> int:
+    """Return the highest session number recorded in AWAKE_LOG.md.
+
+    Historically this function counted only "## Session N" headings. The log now
+    contains condensed placeholders like "## Sessions 1-13 -- See earlier entries",
+    which would undercount sessions and make badges misleading.
+
+    We therefore treat the session count badge as "latest session number".
+    """
     log = repo_path / "AWAKE_LOG.md"
-    if not log.exists(): return 0
+    if not log.exists():
+        return 0
     text = log.read_text(errors="replace")
-    return len(re.findall(r"^## Session \d+", text, re.MULTILINE))
+
+    nums = [int(n) for n in re.findall(r"^## Session\s+(\d+)", text, re.MULTILINE)]
+    if nums:
+        return max(nums)
+
+    # Fallback: handle condensed placeholder headings like "## Sessions 1-13"
+    ranges = re.findall(r"^## Sessions\s+(\d+)\s*-\s*(\d+)", text, re.MULTILINE)
+    if ranges:
+        return max(int(b) for _, b in ranges)
+
+    return 0
 
 
 def _get_test_count(repo_path: Path) -> int:
@@ -146,11 +165,19 @@ def _get_maturity_avg(repo_path: Path) -> Optional[float]:
 
 
 def _get_pr_count(repo_path: Path) -> int:
+    """Best-effort PR count from AWAKE_LOG.md.
+
+    The log uses multiple formats across sessions ("PR #67", "- PR #67 -- ...",
+    and occasionally Markdown links). We therefore parse all occurrences and
+    return the max PR number seen.
+    """
     log = repo_path / "AWAKE_LOG.md"
-    if not log.exists(): return 0
+    if not log.exists():
+        return 0
     text = log.read_text(errors="replace")
-    prs = re.findall(r"\[#(\d+)\]\(https://github\.com/[^)]+/pull/\d+\)", text)
-    return max(int(p) for p in prs) if prs else 0
+
+    nums = [int(n) for n in re.findall(r"PR\s+#(\d+)", text)]
+    return max(nums) if nums else 0
 
 
 def generate_badges(repo_path: Optional[Path] = None) -> BadgeBlock:
@@ -234,18 +261,7 @@ def write_badges_to_readme(block: BadgeBlock, repo_path: Optional[Path] = None) 
         )
         readme.write_text(new_text)
         return True
-    return False
 
-
-def save_badges_report(block: BadgeBlock, output_path: Path) -> None:
-    """Write a Markdown badges report and JSON sidecar to *output_path*."""
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    md = "# Awake Badges\n\n"
-    md += f"*Generated: {block.generated_at}*\n\n"
-    md += "## Badge Preview\n\n" + block.to_markdown_block() + "\n\n"
-    md += "## Raw Markdown\n\n```markdown\n" + block.to_markdown_block() + "```\n\n"
-    md += "## Badge Details\n\n| Label | Message | Color |\n|-------|---------|-------|\n"
-    for b in block.badges:
-        md += f"| {b.label} | {b.message} | {b.color} |\n"
-    output_path.write_text(md)
-    output_path.with_suffix(".json").write_text(block.to_json())
+    # If no H1, just prepend
+    readme.write_text(_BADGE_SECTION_START + "\n" + badge_line.strip() + "\n" + _BADGE_SECTION_END + "\n\n" + text)
+    return True
