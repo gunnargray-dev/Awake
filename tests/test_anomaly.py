@@ -710,6 +710,16 @@ class TestAnomalyReport:
         assert "CRITICAL" in md
         assert "INFO" in md
 
+    def test_to_markdown_uses_ascii_icons(self):
+        """Severity icons must be ASCII-safe (no Unicode emoji)."""
+        report = self._sample_report()
+        md = report.to_markdown()
+        assert "[!!] CRITICAL" in md
+        assert "[i] INFO" in md
+        # Ensure no Unicode emoji leaked in
+        for char in md:
+            assert ord(char) < 0x1F000, f"Unicode emoji found: {char!r}"
+
     def test_empty_report_markdown(self):
         report = AnomalyReport(
             sessions_analyzed=0,
