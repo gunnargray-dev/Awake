@@ -105,7 +105,7 @@ class AnomalyReport:
                 group = [a for a in self.anomalies if a.severity == sev]
                 if not group:
                     continue
-                icon = {"CRITICAL": "🔴", "WARNING": "🟡", "INFO": "🔵"}[sev]
+                icon = {"CRITICAL": "[!!]", "WARNING": "[!]", "INFO": "[i]"}[sev]
                 lines.append(f"## {icon} {sev} ({len(group)})")
                 lines.append("")
                 for a in group:

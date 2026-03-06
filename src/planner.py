@@ -469,12 +469,56 @@ def _collect_complexity_issues(repo_path: Path) -> list[PlannedTask]:
 
 def _collect_doctor_issues(repo_path: Path) -> list[PlannedTask]:
     """Find failing doctor checks."""
-    # NOTE: In some sandbox environments we have observed unexplained
-    # process-level failures when the planner calls into the doctor module after
-    # other collectors have already run. To keep the planner reliable, we skip
-    # doctor signals here and rely on other sources (health, coverage, anomaly,
-    # complexity, etc.).
-    return []
+    try:
+        from src.doctor import diagnose, STATUS_FAIL, STATUS_WARN
+        report = diagnose(repo_path)
+    except Exception:
+        return []
+
+    fails = [c for c in report.checks if c.status == STATUS_FAIL]
+    warns = [c for c in report.checks if c.status == STATUS_WARN]
+
+    tasks: list[PlannedTask] = []
+
+    if fails:
+        names = ", ".join(c.name for c in fails[:5])
+        tasks.append(
+            PlannedTask(
+                title=f"Fix {len(fails)} failing doctor check(s)",
+                description=f"Failing checks: {names}.",
+                source="doctor",
+                scores=TaskScores(
+                    urgency=80,
+                    impact=70,
+                    effort=60,
+                    freshness=90,
+                ),
+                rationale=f"Doctor grade {report.grade}: {len(fails)} failing checks need attention",
+                estimated_effort="medium",
+                related_files=[],
+            )
+        )
+
+    if len(warns) >= 3:
+        names = ", ".join(c.name for c in warns[:5])
+        tasks.append(
+            PlannedTask(
+                title=f"Address {len(warns)} doctor warnings",
+                description=f"Warning checks: {names}.",
+                source="doctor",
+                scores=TaskScores(
+                    urgency=40,
+                    impact=50,
+                    effort=70,
+                    freshness=60,
+                ),
+                rationale=f"Doctor found {len(warns)} warnings that could improve repo health",
+                estimated_effort="small",
+                related_files=[],
+            )
+        )
+
+    return tasks
 
 
 def _collect_insight_signals(repo_path: Path) -> list[PlannedTask]:

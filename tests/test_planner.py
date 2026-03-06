@@ -305,10 +305,54 @@ class TestCollectComplexityIssues:
 
 class TestCollectDoctorIssues:
     def test_returns_task_for_failing_checks(self):
-        pytest.skip("Doctor collector disabled in planner due to sandbox instability")
+        mock_report = MagicMock()
+        fail_check = MagicMock()
+        fail_check.status = "FAIL"
+        fail_check.name = "test coverage (file)"
+        ok_check = MagicMock()
+        ok_check.status = "OK"
+        ok_check.name = "src/ directory"
+        mock_report.checks = [ok_check, fail_check]
+        mock_report.grade = "D"
+
+        with patch("src.doctor.diagnose", return_value=mock_report):
+            tasks = _collect_doctor_issues(Path("."))
+        assert len(tasks) >= 1
+        assert "failing" in tasks[0].title.lower()
+        assert tasks[0].source == "doctor"
 
     def test_returns_task_for_many_warnings(self):
-        pytest.skip("Doctor collector disabled in planner due to sandbox instability")
+        mock_report = MagicMock()
+        warn_checks = []
+        for name in ["docstrings", "test coverage", "ROADMAP.md"]:
+            c = MagicMock()
+            c.status = "WARN"
+            c.name = name
+            warn_checks.append(c)
+        mock_report.checks = warn_checks
+        mock_report.grade = "C"
+
+        with patch("src.doctor.diagnose", return_value=mock_report):
+            tasks = _collect_doctor_issues(Path("."))
+        warn_tasks = [t for t in tasks if "warning" in t.title.lower()]
+        assert len(warn_tasks) >= 1
+
+    def test_healthy_repo_returns_no_tasks(self):
+        mock_report = MagicMock()
+        ok_check = MagicMock()
+        ok_check.status = "OK"
+        ok_check.name = "src/ directory"
+        mock_report.checks = [ok_check]
+        mock_report.grade = "A"
+
+        with patch("src.doctor.diagnose", return_value=mock_report):
+            tasks = _collect_doctor_issues(Path("."))
+        assert tasks == []
+
+    def test_exception_returns_empty(self):
+        with patch("src.doctor.diagnose", side_effect=RuntimeError("boom")):
+            tasks = _collect_doctor_issues(Path("."))
+        assert tasks == []
 
 
 class TestCollectInsightSignals:
